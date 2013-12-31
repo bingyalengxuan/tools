@@ -1,0 +1,58 @@
+#!/bin/sh
+
+# 获取当前分支
+function find_git_branch {
+    local dir=. head
+    until [ "$dir" -ef / ]; do
+        if [ -f "$dir/.git/HEAD" ]; then
+            head=$(< "$dir/.git/HEAD")
+            if [[ $head == ref:\ refs/heads/* ]]; then
+                git_branch=" ${head#*/*/}"
+            elif [[ $head != '' ]]; then
+                git_branch=' (detached)'
+            else
+                git_branch=' (unknown)'
+            fi
+            return
+        fi
+        dir="../$dir"
+    done
+    git_branch=''
+}
+
+# 执行上面的函数
+find_git_branch
+
+if [ $# -ne 1 ]
+    then
+        echo "您输入的参数不对，请输入你要删除的分支前缀名，比如zuoyu.ht"
+        exit 1
+fi
+
+
+# 获取所有的远程分支名
+git branch -a | awk '{print substr($0, ((index($0, "origin/")+7)), length($0))}' | while read line
+do 
+    # 如果是当前分支或demo分支或master分支，则设置标志为1
+    keepFlag=` echo ${line} | grep "$git_branch\|demo\|HEAD\|master" | wc -l`    
+
+    # 如果包含了要删除的分支前缀，设置为1
+
+    delFlag=` echo ${line} | grep "$1" | wc -l`
+
+    # 如果远程分支名即包含了删除的分支前缀，切不包含需要保留的关键字，则删除远程分支
+    if [ $delFlag -eq 1 -a $keepFlag -ne 1 ]
+        then
+            echo "为您删除$line对应的远程分支"
+            git push origin :${line}
+    fi
+done
+exit 0
+
+ 
+
+
+
+
+
+
