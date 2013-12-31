@@ -1,0 +1,46 @@
+#!/bin/sh
+
+# 获取当前分支
+function find_git_branch {
+    local dir=. head
+    until [ "$dir" -ef / ]; do
+        if [ -f "$dir/.git/HEAD" ]; then
+            head=$(< "$dir/.git/HEAD")
+            if [[ $head == ref:\ refs/heads/* ]]; then
+                git_branch=" ${head#*/*/}"
+            elif [[ $head != '' ]]; then
+                git_branch=' (detached)'
+            else
+                git_branch=' (unknown)'
+            fi
+            return
+        fi
+        dir="../$dir"
+    done
+    git_branch=''
+}
+
+# 执行上面的函数
+find_git_branch
+
+git branch | while read line
+do
+    # 如果是master或demo或个人分支的demo分支或当前分支的话，不删除
+    delFlag=` echo ${line} | grep "master\|demo\|${git_branch}" | wc -l`
+    if [ $delFlag -eq 1 ]
+        then
+            echo "为您保留$line分支"
+        else 
+            echo "为您删除$line分支"
+            git branch -D ${line}
+    fi
+done
+
+echo "Done."
+
+
+
+
+
+
+
